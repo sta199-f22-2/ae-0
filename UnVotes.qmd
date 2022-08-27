@@ -1,0 +1,177 @@
+---
+title: "Day1RIntro"
+editor: visual
+format: 
+  html: 
+    toc: true
+---
+
+# Quarto Documents
+
+Quarto has the file extenstion qmd and is like a combination of a word processor and R. To tell that we want to write and run code, we need to insert a code chunk. There are two ways to do this:
+
+1. Use the keyboard shortcut Ctrl + Alt + I (OS X: Cmd + Option + I).
+
+2. Click on the Insert button at the top of this window and choose R.
+
+Once you have inserted your code chunk, you can type code inside the shaded area. Click the play button in the upper right-hand corner of the code chunk to run it. You can also run code line-by-line (Ctrl + Enter or Cmd + Return). Below is an example of a code chunk with a simple
+line of code that you can run.
+
+```{r}
+#example code chunk
+print("Hello World")
+```
+
+Note that anything outside of the shaded area is considered the “word processing” part of Quarto. When completing assignments in the future, make sure that your written answers are not typed in code chunks.
+
+Try it! Create your own code chunk and have R print a word or phrase. What happens if you don't put quotes around your word or phrase? 
+
+# R as a Calculator
+
+Like most software similar to R, it can be used as a calculator. In the example below we can see a simple calculation. After the desired calculation, you’ll also notice a description of what the code is doing following the pound sign (hashtag). This is called a comment. Comments should be used to describe what the code is doing, this will help others read and understand your work (and provide reminders for yourself).
+
+```{r}
+11+(8/2)-5*2 #performing a quick calculation
+```
+
+Try it! Insert a code chunk and write code to perform a calculation. Write a comment on what your code is doing. 
+
+
+# Creating Variables 
+
+Note that in the previous example we provided, the output of 5 was not stored anywhere in R’s memory. All we asked R to do was evaluate 11+(8/2)-5\*2 and give us the answer. Usually, we will want our output stored somewhere so we can easily access it later. This can be achieved through creating variables (or objects). The previous example has now been modified so that R performs the calculation and stores the answer using the assignment arrow (<-). Everything to the left of this arrow is the variable name and everything to the right of this arrow is what will be stored. The assignment arrow can quickly be typed with Alt+- (press the Alt and “-” key simultaneously). *Notice that when you run this code chunk there is no output, but the variable name appears in the Environment Window with the appropriate value.*
+
+```{r}
+x <- 11+(8/2)-5*2 #store the result of the calculation in a variable named "x"
+```
+
+Try it! Create a code chunk and create your own variable. This could be either a word, phrase, or a number. On the next line, type the name of your variable so when the code chunk runs, you will see the output in the console. 
+
+
+# Functions
+
+As you would expect, R can do many more complicated things than just calculator calculations. A lot of the time, we will be using functions to perform more complicated processes quickly. Functions have two parts: the function name and the inputs (or arguments). For example, suppose we wanted to find the mean of a list of numbers using the mean function in R.
+
+```{r}
+numbers<-1:5 #stores 1, 2, 3, 4, and 5 in "numbers"
+mean(numbers) #calculates mean of "numbers"
+```
+
+In the above example, the function is mean and the input is numbers. Running this chunk of code gives the expected mean value of 3.
+
+Try it! Run a different function on the variable numbers. Try the functions: 
+- meidan 
+- barplot
+- hist 
+- summary
+- boxplot
+
+# Packages
+
+All of the functions in R are contained in packages. We will often need to install other packages to access more functions (and sometimes data). This may be done for you in your Duke Container, but it's still importent to know how! There are many ways to install packages, here we will cover the install.packages function. The example below installs the unvotes package for later use and then *loads it with the library function*. Run the code chunk below. Installing packages can take some time, so be patient (if you see the red stop button instead of the green play button, that means R is still running your code). 
+
+```{r}
+install.packages("unvotes")
+library(unvotes)
+```
+
+Note: Quarto will have trouble rendering if the install.packages function is left in the code.
+After installing a package, either delete this line of code, or comment it out by adding a pound sign to the beginning of the line of code. Do one of these things to the code in the example above now (the library function can be left alone, we need this).
+
+\newpage 
+
+# UN Votes
+
+For the remainder of class, we are going to look at the voting history of countries in the United Nations General Assembly using data from package **unvotes** (and start getting familiar with R along the way).
+
+```{r}
+#| echo: true
+#| warning: false
+library(tidyverse)
+library(lubridate)
+library(DT)
+library(viridis)
+library(unvotes)
+```
+
+# Data
+
+We will work with three data sets: un_roll_calls, un_roll_call_issues, and un_votes. Each data set contains a variable called rcid, the roll call id, which can be used to join the data sets with one another.
+
+-- The un_votes data set provides information on the voting history of the United Nations General Assembly. It contains one row for each country/vote pair.
+
+```{r}
+un_votes
+```
+
+The un_roll_calls data set contains information on each roll call vote of the United Nations General Assembly.
+
+```{r}
+un_roll_calls
+```
+
+The un_roll_call_issues data set contains issue classifications of roll call votes of the United Nations General Assembly. There are many votes that have no issue classification, and some are classified under more than one issue.
+
+```{r}
+#| echo: true
+#| warning: false
+un_roll_call_issues
+```
+
+# Analysis
+
+## Part 1
+
+We begin by looking at how often each country voted "yes" on a resolution in each year. How could we visualize the percentage of yes's for the US, Ghana, Mexico, and France?
+
+```{r}
+#| message: false
+country_list <- c("United States", "Ghana", "Mexico", "France")
+
+un_votes %>%
+  filter(country %in% country_list) %>%
+  inner_join(un_roll_calls, by = "rcid") %>% 
+  group_by(year = year(date), country) %>%
+  summarize(votes = n(),
+            percent_yes = mean(vote == "yes")) %>%
+  ggplot(mapping = aes(x = year, y = percent_yes, color = country)) +
+    geom_line() +
+    ylab("% of votes that are 'Yes'") +
+  scale_color_viridis_d() 
+```
+
+# We can Dig Deeper!
+
+## Part 2
+
+Let's take a look at how voting records have changed for each issue.
+
+```{r}
+#| message: false
+un_votes %>%
+  filter(country %in% c("United States", "France")) %>%
+  inner_join(un_roll_calls, by = "rcid") %>%
+  inner_join(un_roll_call_issues, by = "rcid") %>%
+  group_by(country, year = year(date), issue) %>%
+  summarize(votes = n(),
+            percent_yes = mean(vote == "yes")) %>%
+  filter(votes > 5) %>%  # Only use records where there are more than 5 votes
+  ggplot(mapping = aes(x = year, y = percent_yes, color = country)) +
+    geom_point() +
+    geom_smooth(method = "loess", se = FALSE) + 
+    ylab("% of votes that are 'Yes'") +
+    facet_wrap(~ issue) +
+  scale_color_viridis_d() 
+```
+
+
+# Discussion Questions
+
+1.  Consider the plot from Part 1. Describe how the voting behaviors of the four countries have changed over time.
+
+2.  Consider the plot from Part 2.
+
+-- On which issues have the two countries voted most similarly over time?
+
+-- On which issues have they voted most differently over time?
+
